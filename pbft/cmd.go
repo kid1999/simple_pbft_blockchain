@@ -46,8 +46,9 @@ type Reply struct {
 	Result    bool
 }
 
+// 基本网络信息结构体
 type Message struct {
-	Content string
+	Content []byte
 	ID      int
 }
 

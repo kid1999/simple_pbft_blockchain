@@ -8,9 +8,9 @@ import (
 )
 
 //客户端使用的tcp监听
-func ClientTcpListen() {
+func ClientTcpListen(addr string) {
 	// TODO 修改为配置信息的 addr
-	listen, err := net.Listen("tcp", clientAddr)
+	listen, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Panic(err)
 	}

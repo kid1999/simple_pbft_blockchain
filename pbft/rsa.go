@@ -22,6 +22,7 @@ func GenRsaKeys() {
 		if err != nil {
 			log.Panic()
 		}
+		// TODO 修改为节点总数
 		for i := 0; i <= 4; i++ {
 			if !isExist("./Keys/N" + strconv.Itoa(i)) {
 				err := os.Mkdir("./Keys/N"+strconv.Itoa(i), 0644)
