@@ -3,6 +3,7 @@ package blockchain
 import (
 	"encoding/json"
 	"fmt"
+	"pbft_blockchain/conf"
 )
 
 /**
@@ -34,7 +35,7 @@ var Core = struct {
 func SetupNetwork() *Network {
 	n := new(Network)
 	n.BroadcastQueue, n.IncomingMessages = make(chan Message), make(chan Message)
-	n.TransactionsQueue, n.BlockQueue = make(chan *Transaction, BLOCK_SIZE*2), make(chan Block)
+	n.TransactionsQueue, n.BlockQueue = make(chan *Transaction, conf.GlobalConfig.BlockSize*2), make(chan Block)
 	n.ReceivedMessages = make(chan Message)
 	return n
 }

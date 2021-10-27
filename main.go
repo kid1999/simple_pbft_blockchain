@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"pbft_blockchain/blockchain"
+	"pbft_blockchain/conf"
 	. "pbft_blockchain/pbft"
 	"strings"
 )
@@ -14,20 +15,26 @@ func main() {
 	//为四个节点生成公私钥
 	GenRsaKeys()
 
+	// 获取配置
+	c := conf.NewConfig()
+	c.PlanToGetConfig()
+
 	if len(os.Args) != 2 {
 		log.Panic("输入的参数有误！")
 	}
 	nodeID := os.Args[1]
 
+	// TODO 判断是否是出块节点
+
 	// 启动区块链，监听trans消息 发送给leader
-	blockchain.Start(nodeID, LeaderID)
+	blockchain.Start(nodeID, conf.GlobalConfig.LeaderID)
 
 	// 启动pbft
-	if addr, ok := NodeTable[nodeID]; ok {
-		go ClientSendMessageAndListen(ClientTable[nodeID])
+	if addr, ok := conf.NodeTable[nodeID]; ok {
+		go ClientSendMessageAndListen(conf.ClientTable[nodeID])
 		p := NewPBFT(nodeID, addr)
 		go p.TcpListen() //启动节点
-		if nodeID == LeaderID {
+		if nodeID == conf.GlobalConfig.LeaderID {
 			go p.BroadcastBlock()
 		}
 	} else {

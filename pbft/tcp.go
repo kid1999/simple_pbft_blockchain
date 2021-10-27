@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"pbft_blockchain/conf"
 )
 
 //客户端使用的tcp监听
@@ -30,9 +31,9 @@ func ClientTcpListen(addr string) {
 		err = json.Unmarshal(b, &r)
 		if err == nil {
 			replyCount[r.MessageID]++
-			if replyCount[r.MessageID] > nodeCount/3 {
+			if replyCount[r.MessageID] > conf.GlobalConfig.NodeCount/3 {
 				println(r.MessageID, " has reply success!")
-				replyCount[r.MessageID] = -nodeCount
+				replyCount[r.MessageID] = -conf.GlobalConfig.NodeCount
 				// TODO: 消息失败重启
 			}
 		}

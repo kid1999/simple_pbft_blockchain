@@ -14,7 +14,4 @@ const (
 	BLOCK_HEADER_SIZE       = NETWORK_KEY_SIZE /* origin key */ + 4 /* int32 timestamp */ + 32 /* prev block hash */ + 32 /* merkel tree hash */ + 4                                      /* int32 nonce */
 
 	KEY_SIZE = 28
-
-	BLOCK_SIZE     = 2
-	BLOCK_INTERVAL = 4
 )

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"pbft_blockchain/blockchain"
+	"pbft_blockchain/conf"
 	"sync"
 	"time"
 )
@@ -54,7 +55,7 @@ func NewPBFT(nodeID, addr string) *pbft {
 	p.node.rsaPubKey = p.getPubKey(nodeID)  //从生成的私钥文件处读取
 
 	// 主节点信息
-	p.LeaderNode.nodeID = LeaderID
+	p.LeaderNode.nodeID = conf.GlobalConfig.LeaderID
 
 	p.sequenceID = 0
 	p.messagePool = make(map[string]Request)
@@ -146,7 +147,7 @@ func (p *pbft) handlePrePrepare(content []byte) {
 		log.Panic(err)
 	}
 	//获取主节点的公钥，用于数字签名验证
-	primaryNodePubKey := p.getPubKey(LeaderID)
+	primaryNodePubKey := p.getPubKey(conf.GlobalConfig.LeaderID)
 	digestByte, _ := hex.DecodeString(pp.Digest)
 	if digest := getDigest(pp.RequestMessage); digest != pp.Digest {
 		fmt.Println("信息摘要对不上，拒绝进行prepare广播")
@@ -201,10 +202,10 @@ func (p *pbft) handlePrepare(content []byte) {
 		}
 		//因为主节点不会发送Prepare，所以不包含自己
 		specifiedCount := 0
-		if p.node.nodeID == LeaderID {
-			specifiedCount = nodeCount / 3 * 2
+		if p.node.nodeID == conf.GlobalConfig.LeaderID {
+			specifiedCount = conf.GlobalConfig.NodeCount / 3 * 2
 		} else {
-			specifiedCount = (nodeCount / 3 * 2) - 1
+			specifiedCount = (conf.GlobalConfig.NodeCount / 3 * 2) - 1
 		}
 		//如果节点至少收到了2f个prepare的消息（包括自己）,并且没有进行过commit广播，则进行commit广播
 		p.lock.Lock()
@@ -254,7 +255,7 @@ func (p *pbft) handleCommit(content []byte) {
 		}
 		//如果节点至少收到了2f+1个commit消息（包括自己）,并且节点没有回复过,并且已进行过commit广播，则提交信息至本地消息池，并reply成功标志至客户端！
 		p.lock.Lock()
-		if count >= nodeCount/3*2 && !p.isReply[c.Digest] && p.isCommitBordcast[c.Digest] {
+		if count >= conf.GlobalConfig.NodeCount/3*2 && !p.isReply[c.Digest] && p.isCommitBordcast[c.Digest] {
 			fmt.Println("本节点已收到至少2f + 1 个节点(包括本地节点)发来的Commit信息 ...")
 			// 将消息信息，提交到本地消息池中！
 			localMessagePool = append(localMessagePool, p.messagePool[c.Digest].Message)
@@ -269,7 +270,7 @@ func (p *pbft) handleCommit(content []byte) {
 				for _, t := range block.TransactionSlice {
 					res := Reply{MessageID: t.ID, NodeID: p.node.nodeID, Result: true}
 					data, _ := json.Marshal(res)
-					tcpDial(data, ClientTable[string(t.Header.To)])
+					tcpDial(data, conf.ClientTable[string(t.Header.To)])
 				}
 			}
 			p.isReply[c.Digest] = true
@@ -288,12 +289,12 @@ func (p *pbft) sequenceIDAdd() {
 
 //向除自己外的其他节点进行广播
 func (p *pbft) broadcast(cmd command, content []byte) {
-	for i := range NodeTable {
+	for i := range conf.NodeTable {
 		if i == p.node.nodeID {
 			continue
 		}
 		message := jointMessage(cmd, content)
-		go tcpDial(message, NodeTable[i])
+		go tcpDial(message, conf.NodeTable[i])
 	}
 }
 

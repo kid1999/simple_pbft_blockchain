@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"pbft_blockchain/conf"
 	"strconv"
 )
 
@@ -22,7 +23,7 @@ func GenRsaKeys() {
 		if err != nil {
 			log.Panic()
 		}
-		for i := 0; i <= nodeCount; i++ {
+		for i := 0; i <= conf.GlobalConfig.NodeCount; i++ {
 			if !isExist("./Keys/N" + strconv.Itoa(i)) {
 				err := os.Mkdir("./Keys/N"+strconv.Itoa(i), 0644)
 				if err != nil {

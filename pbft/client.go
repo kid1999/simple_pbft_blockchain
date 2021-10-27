@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/big"
 	"pbft_blockchain/blockchain"
+	"pbft_blockchain/conf"
 	"time"
 )
 
@@ -32,7 +33,7 @@ func ClientSendMessageAndListen(addr string) {
 			}
 			content := jointMessage(cRequest, br)
 			//默认N0为主节点，直接把请求信息发送至N0
-			tcpDial(content, NodeTable[LeaderID])
+			tcpDial(content, conf.NodeTable[conf.GlobalConfig.LeaderID])
 			// TODO: 消息失败重启
 		}
 	}

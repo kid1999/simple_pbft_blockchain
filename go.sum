@@ -1,0 +1,6 @@
+github.com/izqui/functional v0.0.0-20160607200733-33eb58a9d05d h1:REoCyytaQ6268cNxLU3OFDHfRyBTXKCpUNYIFyacv6I=
+github.com/izqui/functional v0.0.0-20160607200733-33eb58a9d05d/go.mod h1:KLC4XGxlYk+c6JZPF2hRSKenxEFpZmBSCkqNBnpFiSo=
+github.com/izqui/helpers v0.0.0-20150821122028-c69cdb8bbd19 h1:C054dPZenDrO050x7LedyKFV+0OMjoJt57joHTgRZGc=
+github.com/izqui/helpers v0.0.0-20150821122028-c69cdb8bbd19/go.mod h1:T37xToJI45Zrox8+kXrYCs4trsJ2SpqesRuAHDPeLFk=
+github.com/tv42/base58 v1.0.0 h1:ZN6pfg9LN98oUzMfc9axMNXuWxqJezO2S+atn1S5f4U=
+github.com/tv42/base58 v1.0.0/go.mod h1:JvBtPdU9grJ9mB4/W/j8gK5KJwXHkwIrB9DC2snzGC4=

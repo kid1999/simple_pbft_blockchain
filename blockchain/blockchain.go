@@ -3,6 +3,7 @@ package blockchain
 import (
 	"encoding/json"
 	"fmt"
+	"pbft_blockchain/conf"
 	"time"
 )
 
@@ -61,7 +62,7 @@ func (bl *Blockchain) LeaderRun() {
 	for {
 		select {
 		// 到达出块时间 出块
-		case <-time.After(time.Second * BLOCK_INTERVAL):
+		case <-time.After(time.Second * time.Duration(conf.GlobalConfig.BlockInterval)):
 			block := bl.CurrentBlock
 			block.BlockHeader.MerkelRoot = block.GenerateMerkelRoot()
 			block.BlockHeader.Nonce = 0
@@ -78,7 +79,7 @@ func (bl *Blockchain) LeaderRun() {
 			fmt.Println("data: ", string(tr.Payload))
 
 			// Adjustment of the block size or block interval
-			if bl.CurrentBlock.TransactionSlice.Len() >= BLOCK_SIZE {
+			if bl.CurrentBlock.TransactionSlice.Len() >= conf.GlobalConfig.BlockSize {
 				block := bl.CurrentBlock
 				block.BlockHeader.MerkelRoot = block.GenerateMerkelRoot()
 				block.BlockHeader.Nonce = 0
