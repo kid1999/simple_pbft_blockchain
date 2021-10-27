@@ -1,8 +1,8 @@
 package blockchain
 
 import (
+	"encoding/json"
 	"fmt"
-	"reflect"
 	"time"
 )
 
@@ -52,30 +52,34 @@ func (bl *Blockchain) CreateNewBlock() Block {
 }
 
 func (bl *Blockchain) AddBlock(b Block) {
-
 	bl.BlockSlice = append(bl.BlockSlice, b)
 	fmt.Println("Height: ", len(bl.BlockSlice))
 }
 
-// TODO: blockchain 从这里 拿到交易 或者 block
-func (bl *Blockchain) Run() {
+// Leader 在这里生产区块
+func (bl *Blockchain) LeaderRun() {
 	for {
 		select {
-		// all node deal with transaction
+		// 到达出块时间 出块
+		case <-time.After(time.Second * BLOCK_INTERVAL):
+			block := bl.CurrentBlock
+			block.BlockHeader.MerkelRoot = block.GenerateMerkelRoot()
+			block.BlockHeader.Nonce = 0
+			block.BlockHeader.Timestamp = uint32(time.Now().Unix())
+			// TODO 验证区块信息
+			fmt.Println("New block!", block.Hash())
+			// broadcast the block
+			Core.Network.BlockQueue <- block
+
+		// 到达区块大小 出块
 		case tr := <-Core.Network.TransactionsQueue:
-
-			fmt.Println("get pbft trans: ", string(tr.Payload))
-
-			// TODO 验证交易信息
-
 			// Put currentBlock into chan block
 			bl.CurrentBlock.AddTransaction(tr)
 			fmt.Println("data: ", string(tr.Payload))
 
-			//TODO: Make the Block include N transactions
+			// Adjustment of the block size or block interval
 			if bl.CurrentBlock.TransactionSlice.Len() >= BLOCK_SIZE {
 				block := bl.CurrentBlock
-				fmt.Println("Add a block in Queue.")
 				block.BlockHeader.MerkelRoot = block.GenerateMerkelRoot()
 				block.BlockHeader.Nonce = 0
 				block.BlockHeader.Timestamp = uint32(time.Now().Unix())
@@ -83,8 +87,6 @@ func (bl *Blockchain) Run() {
 				fmt.Println("New block!", block.Hash())
 				// broadcast the block
 				Core.Network.BlockQueue <- block
-				// Add block into blockchain
-				bl.AddBlock(block)
 				//New Block
 				bl.CurrentBlock = bl.CreateNewBlock()
 			}
@@ -92,22 +94,18 @@ func (bl *Blockchain) Run() {
 	}
 }
 
-func DiffTransactionSlices(a, b TransactionSlice) (diff TransactionSlice) {
-	//Assumes transaction arrays are sorted (which maybe is too big of an assumption)
-	lastj := 0
-	for _, t := range a {
-		found := false
-		for j := lastj; j < len(b); j++ {
-			if reflect.DeepEqual(b[j].Signature, t.Signature) {
-				found = true
-				lastj = j
-				break
+func (bl *Blockchain) Run() {
+	for {
+		select {
+		case <-time.After(time.Second):
+		case b := <-Core.Network.ReceivedMessages:
+			var block Block
+			err := json.Unmarshal(b, &block)
+			if err == nil {
+				bl.AddBlock(block)
+				//New Block
+				bl.CurrentBlock = bl.CreateNewBlock()
 			}
 		}
-		if !found {
-			diff = append(diff, t)
-		}
 	}
-
-	return
 }

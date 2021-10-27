@@ -45,7 +45,7 @@ func (bs BlockSlice) PreviousBlock() *Block {
 type Block struct {
 	*BlockHeader
 	Signature []byte
-	*TransactionSlice
+	TransactionSlice
 }
 
 type BlockHeader struct {
@@ -59,12 +59,12 @@ type BlockHeader struct {
 func NewBlock(previousBlock []byte) Block {
 
 	header := &BlockHeader{PrevBlock: previousBlock}
-	return Block{header, nil, new(TransactionSlice)}
+	return Block{header, nil, TransactionSlice{}}
 }
 
 func (b *Block) AddTransaction(t *Transaction) {
 	newSlice := b.TransactionSlice.AddTransaction(*t)
-	b.TransactionSlice = &newSlice
+	b.TransactionSlice = newSlice
 }
 
 func (b *Block) Sign(keypair *Keypair) []byte {
@@ -74,12 +74,9 @@ func (b *Block) Sign(keypair *Keypair) []byte {
 }
 
 func (b *Block) VerifyBlock() bool {
-
 	//headerHash := b.Hash()
 	merkel := b.GenerateMerkelRoot()
-
-	// TODO: verify the block
-	return reflect.DeepEqual(merkel, b.BlockHeader.MerkelRoot) //&& SignatureVerify(b.BlockHeader.Origin, b.Signature, headerHash)
+	return reflect.DeepEqual(merkel, b.BlockHeader.MerkelRoot)
 }
 
 func (b *Block) Hash() []byte {
@@ -114,7 +111,7 @@ func (b *Block) GenerateMerkelRoot() []byte {
 		}
 	}
 
-	ts := functional.Map(func(t Transaction) []byte { return t.Hash() }, []Transaction(*b.TransactionSlice)).([][]byte)
+	ts := functional.Map(func(t Transaction) []byte { return t.Hash() }, []Transaction(b.TransactionSlice)).([][]byte)
 	return merkell(ts)
 
 }
@@ -146,7 +143,7 @@ func (b *Block) UnmarshalBinary(d []byte) error {
 	b.BlockHeader = header
 	b.Signature = helpers.StripByte(buf.Next(NETWORK_KEY_SIZE), 0)
 
-	ts := new(TransactionSlice)
+	ts := TransactionSlice{}
 	err = ts.UnmarshalBinary(buf.Next(helpers.MaxInt))
 	if err != nil {
 		return err

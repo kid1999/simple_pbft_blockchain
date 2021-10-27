@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 	"pbft_blockchain/blockchain"
-	"strconv"
 	"sync"
+	"time"
 )
 
 //本地消息池（模拟持久化层），只有确认提交成功后才会存入此池
@@ -29,7 +29,7 @@ type pbft struct {
 	//节点信息
 	node node
 	//主节点
-	masterNode node
+	LeaderNode node
 	//每笔请求自增序号
 	sequenceID int
 	//锁
@@ -53,8 +53,8 @@ func NewPBFT(nodeID, addr string) *pbft {
 	p.node.rsaPrivKey = p.getPivKey(nodeID) //从生成的私钥文件处读取
 	p.node.rsaPubKey = p.getPubKey(nodeID)  //从生成的私钥文件处读取
 
-	// TODO 主节点信息
-	p.masterNode.nodeID = masterID
+	// 主节点信息
+	p.LeaderNode.nodeID = LeaderID
 
 	p.sequenceID = 0
 	p.messagePool = make(map[string]Request)
@@ -80,31 +80,16 @@ func (p *pbft) handleRequest(data []byte) {
 	}
 }
 
-//处理客户端发来的请求
-// TODO 在这里接受交易 并作 package block broadcast
-func (p *pbft) handleClientRequest(content []byte) {
-	fmt.Println("主节点已接收到客户端发来的request ...")
-	//使用json解析出Request结构体
-	r := new(Request)
-	err := json.Unmarshal(content, r)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	// TODO: Check block size and block interval to Create new block.
-	trans := new(blockchain.Transaction)
-	json.Unmarshal(r.Message.Content, trans)
-
-	fmt.Println("get transaction : ", string(trans.Payload))
-	// 校验 - 组装区块
-	blockchain.Core.TransactionCount++
-	blockchain.Core.Network.TransactionsQueue <- trans
-
-	// 获得已经处理好的区块 进行广播确认 保存
-	// 替换原来的context 为 block
-	if blockchain.Core.TransactionCount >= BLOCK_SIZE {
+// 获得已经处理好的区块 进行广播确认 保存
+func (p *pbft) BroadcastBlock() {
+	for {
 		select {
 		case block := <-blockchain.Core.Network.BlockQueue:
+			// create a new request
+			r := new(Request)
+			r.Timestamp = time.Now().UnixNano()
+			r.ClientAddr = p.node.addr
+			r.Message.ID = getRandom()
 			bytes, _ := json.Marshal(block)
 			r.Content = bytes
 
@@ -128,9 +113,27 @@ func (p *pbft) handleClientRequest(content []byte) {
 			//进行PrePrepare广播
 			p.broadcast(cPrePrepare, b)
 			fmt.Println("PrePrepare广播完成")
-			blockchain.Core.TransactionCount = 0
 		}
 	}
+}
+
+// 处理客户端发来的请求
+func (p *pbft) handleClientRequest(content []byte) {
+	fmt.Println("主节点已接收到客户端发来的request ...")
+	//使用json解析出Request结构体
+	r := new(Request)
+	err := json.Unmarshal(content, r)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	//  Check block size and block interval to Create new block.
+	trans := new(blockchain.Transaction)
+	json.Unmarshal(r.Message.Content, trans)
+
+	fmt.Println("get transaction : ", string(trans.Payload))
+	// 校验 - 组装区块
+	blockchain.Core.Network.TransactionsQueue <- trans
 }
 
 //处理预准备消息
@@ -143,7 +146,7 @@ func (p *pbft) handlePrePrepare(content []byte) {
 		log.Panic(err)
 	}
 	//获取主节点的公钥，用于数字签名验证
-	primaryNodePubKey := p.getPubKey(masterID)
+	primaryNodePubKey := p.getPubKey(LeaderID)
 	digestByte, _ := hex.DecodeString(pp.Digest)
 	if digest := getDigest(pp.RequestMessage); digest != pp.Digest {
 		fmt.Println("信息摘要对不上，拒绝进行prepare广播")
@@ -198,7 +201,7 @@ func (p *pbft) handlePrepare(content []byte) {
 		}
 		//因为主节点不会发送Prepare，所以不包含自己
 		specifiedCount := 0
-		if p.node.nodeID == masterID {
+		if p.node.nodeID == LeaderID {
 			specifiedCount = nodeCount / 3 * 2
 		} else {
 			specifiedCount = (nodeCount / 3 * 2) - 1
@@ -253,16 +256,22 @@ func (p *pbft) handleCommit(content []byte) {
 		p.lock.Lock()
 		if count >= nodeCount/3*2 && !p.isReply[c.Digest] && p.isCommitBordcast[c.Digest] {
 			fmt.Println("本节点已收到至少2f + 1 个节点(包括本地节点)发来的Commit信息 ...")
-			//将消息信息，提交到本地消息池中！
+			// 将消息信息，提交到本地消息池中！
 			localMessagePool = append(localMessagePool, p.messagePool[c.Digest].Message)
-			info := p.node.nodeID + "节点已将msgid:" + strconv.Itoa(p.messagePool[c.Digest].ID) + "存入本地消息池中,消息内容为：" + string(p.messagePool[c.Digest].Content)
-			fmt.Println(info)
-			fmt.Println("正在reply客户端 ...")
 
-			// TODO 包装返回给消息发送方
-			res := Reply{MessageID: p.messagePool[c.Digest].ID, NodeID: p.node.nodeID, Result: true}
-			data, _ := json.Marshal(res)
-			tcpDial(data, p.messagePool[c.Digest].ClientAddr)
+			// add the block to the blockchain
+			blockchain.Core.Network.ReceivedMessages <- p.messagePool[c.Digest].Message.Content
+
+			// 包装返回给消息发送方
+			var block blockchain.Block
+			err := json.Unmarshal(p.messagePool[c.Digest].Message.Content, &block)
+			if err == nil && block.TransactionSlice != nil {
+				for _, t := range block.TransactionSlice {
+					res := Reply{MessageID: t.ID, NodeID: p.node.nodeID, Result: true}
+					data, _ := json.Marshal(res)
+					tcpDial(data, ClientTable[string(t.Header.To)])
+				}
+			}
 			p.isReply[c.Digest] = true
 			fmt.Println("reply完毕")
 		}

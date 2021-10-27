@@ -20,13 +20,16 @@ func main() {
 	nodeID := os.Args[1]
 
 	// 启动区块链，监听trans消息 发送给leader
-	blockchain.Start()
+	blockchain.Start(nodeID, LeaderID)
 
 	// 启动pbft
 	if addr, ok := NodeTable[nodeID]; ok {
 		go ClientSendMessageAndListen(ClientTable[nodeID])
 		p := NewPBFT(nodeID, addr)
 		go p.TcpListen() //启动节点
+		if nodeID == LeaderID {
+			go p.BroadcastBlock()
+		}
 	} else {
 		log.Fatal("无此节点编号！")
 	}

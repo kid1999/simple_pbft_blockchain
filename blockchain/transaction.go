@@ -2,9 +2,12 @@ package blockchain
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"github.com/izqui/helpers"
+	"log"
+	"math/big"
 	"reflect"
 	"time"
 )
@@ -20,6 +23,7 @@ type Transaction struct {
 	Header    TransactionHeader
 	Signature []byte
 	Payload   []byte
+	ID        int
 }
 
 type TransactionHeader struct {
@@ -34,10 +38,10 @@ type TransactionHeader struct {
 func NewTransaction(from, to, payload []byte) *Transaction {
 
 	t := Transaction{Header: TransactionHeader{From: from, To: to}, Payload: payload}
-
 	t.Header.Timestamp = uint32(time.Now().Unix())
 	t.Header.PayloadHash = helpers.SHA256(t.Payload)
 	t.Header.PayloadLength = uint32(len(t.Payload))
+	t.ID = getRandom()
 
 	return &t
 }
@@ -60,7 +64,6 @@ func (t *Transaction) VerifyTransaction() bool {
 	headerHash := t.Hash()
 	payloadHash := helpers.SHA256(t.Payload)
 
-	// TODO: change pow to pbft
 	return reflect.DeepEqual(payloadHash, t.Header.PayloadHash) && SignatureVerify(t.Header.From, t.Signature, headerHash)
 }
 
@@ -185,4 +188,18 @@ func (slice *TransactionSlice) UnmarshalBinary(d []byte) error {
 		remaining = rem
 	}
 	return nil
+}
+
+//返回一个十位数的随机数，作为msgid
+func getRandom() int {
+	x := big.NewInt(10000000000)
+	for {
+		result, err := rand.Int(rand.Reader, x)
+		if err != nil {
+			log.Panic(err)
+		}
+		if result.Int64() > 1000000000 {
+			return int(result.Int64())
+		}
+	}
 }

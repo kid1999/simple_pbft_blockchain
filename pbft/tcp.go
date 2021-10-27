@@ -1,6 +1,7 @@
 package pbft
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -9,13 +10,13 @@ import (
 
 //客户端使用的tcp监听
 func ClientTcpListen(addr string) {
-	// TODO 修改为配置信息的 addr
 	listen, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Panic(err)
 	}
 	defer listen.Close()
 
+	replyCount := map[int]int{}
 	for {
 		conn, err := listen.Accept()
 		if err != nil {
@@ -25,9 +26,18 @@ func ClientTcpListen(addr string) {
 		if err != nil {
 			log.Panic(err)
 		}
-		fmt.Println(string(b))
-	}
+		var r Reply
+		err = json.Unmarshal(b, &r)
+		if err == nil {
+			replyCount[r.MessageID]++
+			if replyCount[r.MessageID] > nodeCount/3 {
+				println(r.MessageID, " has reply success!")
+				replyCount[r.MessageID] = -nodeCount
+				// TODO: 消息失败重启
+			}
+		}
 
+	}
 }
 
 //节点使用的tcp监听

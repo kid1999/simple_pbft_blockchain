@@ -61,6 +61,7 @@ const (
 	cPrePrepare command = "preprepare"
 	cPrepare    command = "prepare"
 	cCommit     command = "commit"
+	cReply      command = "reply"
 )
 
 //默认前十二位为命令名称
