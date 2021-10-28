@@ -16,15 +16,13 @@ func main() {
 	GenRsaKeys()
 
 	// 获取配置
-	c := conf.NewConfig()
-	c.PlanToGetConfig()
+	conf.NewConfig()
+	//go c.PlanToGetConfig()
 
 	if len(os.Args) != 2 {
 		log.Panic("输入的参数有误！")
 	}
 	nodeID := os.Args[1]
-
-	// TODO 判断是否是出块节点
 
 	// 启动区块链，监听trans消息 发送给leader
 	blockchain.Start(nodeID, conf.GlobalConfig.LeaderID)

@@ -9,9 +9,9 @@ def hello_world():
 @app.route('/api')
 def get_config():
     config = {
-        "BlockSize":4,
-        "BlockInterval":4,
+        "BlockSize":2,
+        "BlockInterval":1,
         "Consensus":0,
-        "Producers":["N0","N1"]
+        "Producers":["N0","N2","N3"]
     }
     return config

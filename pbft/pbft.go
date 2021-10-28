@@ -275,6 +275,13 @@ func (p *pbft) handleCommit(content []byte) {
 			}
 			p.isReply[c.Digest] = true
 			fmt.Println("reply完毕")
+			// TODO 序列号及区块高度一致性
+			// 动态调整共识配置
+			fmt.Println("s sequenceID :", p.sequenceID)
+			if p.sequenceID%10 == 0 {
+				conf.RequestConfig(conf.GlobalConfig)
+				p.sequenceID = 0
+			}
 		}
 		p.lock.Unlock()
 	}
@@ -287,14 +294,22 @@ func (p *pbft) sequenceIDAdd() {
 	p.lock.Unlock()
 }
 
+// 只向producers广播block达成共识
 //向除自己外的其他节点进行广播
 func (p *pbft) broadcast(cmd command, content []byte) {
-	for i := range conf.NodeTable {
-		if i == p.node.nodeID {
+	//for i := range conf.NodeTable {
+	//	if i == p.node.nodeID {
+	//		continue
+	//	}
+	//	message := jointMessage(cmd, content)
+	//	go tcpDial(message, conf.NodeTable[i])
+	//}
+	for _, id := range conf.GlobalConfig.Producers {
+		if id == p.node.nodeID {
 			continue
 		}
 		message := jointMessage(cmd, content)
-		go tcpDial(message, conf.NodeTable[i])
+		go tcpDial(message, conf.NodeTable[id])
 	}
 }
 

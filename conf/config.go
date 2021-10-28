@@ -76,12 +76,12 @@ func NewConfig() *Config {
 
 func (c *Config) PlanToGetConfig() {
 	for {
-		c.RequestConfig()
+		RequestConfig(c)
 		time.Sleep(time.Second * 10)
 	}
 }
 
-func (c *Config) RequestConfig() {
+func RequestConfig(c *Config) {
 	resp, err := http.Get(ConfigServer)
 	if err != nil {
 		fmt.Println(err)
