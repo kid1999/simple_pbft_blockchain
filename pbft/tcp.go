@@ -3,10 +3,10 @@ package pbft
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/kid1999/simple_pbft_blockchain/conf"
 	"io/ioutil"
 	"log"
 	"net"
-	"pbft_blockchain/conf"
 )
 
 //客户端使用的tcp监听

@@ -4,10 +4,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/kid1999/simple_pbft_blockchain/blockchain"
+	"github.com/kid1999/simple_pbft_blockchain/conf"
 	"io/ioutil"
 	"log"
-	"pbft_blockchain/blockchain"
-	"pbft_blockchain/conf"
 	"sync"
 	"time"
 )
@@ -270,7 +270,7 @@ func (p *pbft) handleCommit(content []byte) {
 				for _, t := range block.TransactionSlice {
 					res := Reply{MessageID: t.ID, NodeID: p.node.nodeID, Result: true}
 					data, _ := json.Marshal(res)
-					tcpDial(data, conf.ClientTable[string(t.Header.To)])
+					tcpDial(data, conf.GetNode(string(t.Header.To)).ClientAddr)
 				}
 			}
 			p.isReply[c.Digest] = true
@@ -289,12 +289,12 @@ func (p *pbft) sequenceIDAdd() {
 
 //向除自己外的其他节点进行广播
 func (p *pbft) broadcast(cmd command, content []byte) {
-	for i := range conf.NodeTable {
-		if i == p.node.nodeID {
+	for _, node := range conf.Nodes {
+		if node.ID == p.node.nodeID {
 			continue
 		}
 		message := jointMessage(cmd, content)
-		go tcpDial(message, conf.NodeTable[i])
+		go tcpDial(message, node.NodeAddr)
 	}
 }
 

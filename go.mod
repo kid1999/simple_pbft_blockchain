@@ -1,4 +1,4 @@
-module pbft_blockchain
+module github.com/kid1999/simple_pbft_blockchain
 
 go 1.17
 

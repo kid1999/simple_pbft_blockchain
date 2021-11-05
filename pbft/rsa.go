@@ -9,9 +9,9 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/kid1999/simple_pbft_blockchain/conf"
 	"log"
 	"os"
-	"pbft_blockchain/conf"
 	"strconv"
 )
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 )
 
 /**
@@ -14,9 +13,14 @@ import (
 * @date Date : 2021/10/27 7:22 PM
 * @version V1.0
  */
-type Location struct {
-	x float32
-	y float32
+type Node struct {
+	ID         string `json:"id"`
+	NodeAddr   string `json:"node_addr"`
+	ClientAddr string `json:"client_addr"`
+	// 计算性能 MHz
+	CPU int `json:"cpu"`
+	// 存储能力 MB
+	Disk int `json:"disk"`
 }
 
 type Config struct {
@@ -27,34 +31,21 @@ type Config struct {
 	Producers     []string
 	NodeCount     int
 	LeaderID      string
-	Stake         int
-	Location
-	CPU int //MHz
-	// 地理位置，权益的基尼系数阈值
-	StakeMAX        float32
-	LocationMAX     float32
-	TransactionSize int
 }
 
 var GlobalConfig *Config
 
 //节点池，主要用来存储监听地址
-var NodeTable = map[string]string{
-	"N0": "127.0.0.1:8000",
-	"N1": "127.0.0.1:8001",
-	"N2": "127.0.0.1:8002",
-	"N3": "127.0.0.1:8003",
-}
-
-var ClientTable = map[string]string{
-	"N0": "127.0.0.1:9000",
-	"N1": "127.0.0.1:9001",
-	"N2": "127.0.0.1:9002",
-	"N3": "127.0.0.1:9003",
+var Nodes = []Node{
+	{ID: "N0", NodeAddr: "127.0.0.1:8000", ClientAddr: "127.0.0.1:9000", CPU: 10 * 1024 * 1024, Disk: 1000 * 1024},
+	{ID: "N1", NodeAddr: "127.0.0.1:8001", ClientAddr: "127.0.0.1:9001", CPU: 5 * 1024 * 1024, Disk: 500 * 1024},
+	{ID: "N2", NodeAddr: "127.0.0.1:8002", ClientAddr: "127.0.0.1:9002", CPU: 3 * 1024 * 1024, Disk: 300 * 1024},
+	{ID: "N3", NodeAddr: "127.0.0.1:8003", ClientAddr: "127.0.0.1:9003", CPU: 1 * 1024 * 1024, Disk: 100 * 1024},
 }
 
 var ConfigServer = "http://127.0.0.1:5000/api"
 
+// 读取配置信息
 func NewConfig() *Config {
 	c := Config{}
 	c.NodeID = "N0"
@@ -64,23 +55,11 @@ func NewConfig() *Config {
 	c.Producers = []string{"N0", "N1", "N2"}
 	c.LeaderID = "N0"
 	c.NodeCount = len(c.Producers)
-	c.CPU = 100
-	c.Stake = 20
-	c.Location = Location{0.5, 0.5}
-	c.LocationMAX = 0.3
-	c.StakeMAX = 0.1
-	c.TransactionSize = 10
 	GlobalConfig = &c
 	return &c
 }
 
-func (c *Config) PlanToGetConfig() {
-	for {
-		c.RequestConfig()
-		time.Sleep(time.Second * 10)
-	}
-}
-
+// 上传配置信息
 func (c *Config) RequestConfig() {
 	resp, err := http.Get(ConfigServer)
 	if err != nil {
@@ -100,4 +79,13 @@ func (c Config) IsProducer() bool {
 		}
 	}
 	return false
+}
+
+func GetNode(ID string) *Node {
+	for _, node := range Nodes {
+		if node.ID == ID {
+			return &node
+		}
+	}
+	return nil
 }

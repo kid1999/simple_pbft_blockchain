@@ -3,7 +3,7 @@ package blockchain
 import (
 	"encoding/json"
 	"fmt"
-	"pbft_blockchain/conf"
+	"github.com/kid1999/simple_pbft_blockchain/conf"
 )
 
 /**

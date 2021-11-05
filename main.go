@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/kid1999/simple_pbft_blockchain/blockchain"
+	"github.com/kid1999/simple_pbft_blockchain/conf"
+	. "github.com/kid1999/simple_pbft_blockchain/pbft"
 	"log"
 	"os"
-	"pbft_blockchain/blockchain"
-	"pbft_blockchain/conf"
-	. "pbft_blockchain/pbft"
 	"strings"
 )
 
@@ -16,29 +16,22 @@ func main() {
 	GenRsaKeys()
 
 	// 获取配置
-	c := conf.NewConfig()
-	c.PlanToGetConfig()
+	conf.NewConfig()
 
 	if len(os.Args) != 2 {
 		log.Panic("输入的参数有误！")
 	}
 	nodeID := os.Args[1]
 
-	// TODO 判断是否是出块节点
-
 	// 启动区块链，监听trans消息 发送给leader
 	blockchain.Start(nodeID, conf.GlobalConfig.LeaderID)
 
 	// 启动pbft
-	if addr, ok := conf.NodeTable[nodeID]; ok {
-		go ClientSendMessageAndListen(conf.ClientTable[nodeID])
-		p := NewPBFT(nodeID, addr)
-		go p.TcpListen() //启动节点
-		if nodeID == conf.GlobalConfig.LeaderID {
-			go p.BroadcastBlock()
-		}
-	} else {
-		log.Fatal("无此节点编号！")
+	go ClientSendMessageAndListen(conf.GetNode(nodeID).ClientAddr)
+	p := NewPBFT(nodeID, conf.GetNode(nodeID).NodeAddr)
+	go p.TcpListen() //启动节点
+	if nodeID == conf.GlobalConfig.LeaderID {
+		go p.BroadcastBlock()
 	}
 
 	// 读取数据发送消息
