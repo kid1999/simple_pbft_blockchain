@@ -3,6 +3,7 @@ package blockchain
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/boltdb/bolt"
 	"github.com/kid1999/simple_pbft_blockchain/conf"
 	"time"
 )
@@ -23,6 +24,8 @@ type Blockchain struct {
 
 	TransactionsQueue
 	BlocksQueue
+	DB     *bolt.DB
+	Height uint64
 }
 
 func SetupBlockchan() *Blockchain {
@@ -33,6 +36,10 @@ func SetupBlockchan() *Blockchain {
 	//Read blockchain from file and stuff...
 
 	bl.CurrentBlock = bl.CreateNewBlock()
+	bl.Height = 0
+
+	// 启动数据库
+	bl.DB = DB_init()
 
 	return bl
 }
@@ -40,21 +47,29 @@ func SetupBlockchan() *Blockchain {
 func (bl *Blockchain) CreateNewBlock() Block {
 
 	prevBlock := bl.BlockSlice.PreviousBlock()
-	prevBlockHash := []byte{}
+	// 创世区块的Blcok hash = 0
+	prevBlockHash := []byte{0}
 	if prevBlock != nil {
-
 		prevBlockHash = prevBlock.Hash()
 	}
-
 	b := NewBlock(prevBlockHash)
+	b.BlockHeader.Height = bl.Height + 1
 	b.BlockHeader.Origin = Core.Keypair.Public
 
 	return b
 }
 
+// TODO 区块数据的持久化
 func (bl *Blockchain) AddBlock(b Block) {
 	bl.BlockSlice = append(bl.BlockSlice, b)
-	fmt.Println("Height: ", len(bl.BlockSlice))
+	// 持久化区块
+	bl.StoreBlock(b)
+	bl.Height++
+	fmt.Println("Height: ", bl.Height)
+
+	if bl.Height%5 == 0 {
+		bl.PrintChain()
+	}
 }
 
 // Leader 在这里生产区块

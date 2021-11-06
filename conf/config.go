@@ -31,6 +31,7 @@ type Config struct {
 	Producers     []string
 	NodeCount     int
 	LeaderID      string
+	DBPath        string
 }
 
 var GlobalConfig *Config
@@ -55,6 +56,7 @@ func NewConfig() *Config {
 	c.Producers = []string{"N0", "N1", "N2"}
 	c.LeaderID = "N0"
 	c.NodeCount = len(c.Producers)
+	c.DBPath = "Keys/db/my.db"
 	GlobalConfig = &c
 	return &c
 }

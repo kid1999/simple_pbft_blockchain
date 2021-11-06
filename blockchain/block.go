@@ -54,6 +54,7 @@ type BlockHeader struct {
 	MerkelRoot []byte
 	Timestamp  uint32
 	Nonce      uint32
+	Height     uint64
 }
 
 func NewBlock(previousBlock []byte) Block {
